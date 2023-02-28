@@ -34,6 +34,11 @@ I admit that doesn't look half as good as it does in the actual game, and there 
 
 Check out the full list of [body numbers](http://chaosfish.free.fr/lbafileinfo/lba1-body.hqr.htm) and [animation numbers](http://chaosfish.free.fr/lbafileinfo/lba1-anim.hqr.htm), but beware that numbering in Blender starts from 0 (so the “Twinsen jumping” animation is not index 6, but index 5).
 
+Changes 
+---------
+0.0.2:
+ - Updated code so it works on blender 3.4.1
+ - Added auto importing of pallet while importing model (separate selection of it).
 
 Bugs/TODO
 ---------

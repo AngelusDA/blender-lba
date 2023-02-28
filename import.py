@@ -306,6 +306,48 @@ def read_lba_anim(f):
     lba_anim.loop_start = loop_start
     return lba_anim
 
+class LBAPaletteImporter(bpy.types.Operator, bpy_extras.io_utils.ImportHelper):
+    """Import a Little Big Adventure (LBA) palette"""
+
+    bl_idname = 'object.lbapalette'
+    bl_label = 'Import LBA palette'
+    bl_options = {'REGISTER', 'UNDO'}
+
+    filename_ext = '.hqr'
+    filter_glob : bpy.props.StringProperty(
+        default='*.hqr;*.HQR',
+        options={'HIDDEN'},
+    )
+
+    entry : bpy.props.IntProperty(
+        name='Entry number',
+        description="Entry number",
+        subtype='UNSIGNED',
+        default=0
+    )
+    
+    def load(context, filepath, entry):
+        scn = context.scene
+        ob = bpy.context.active_object
+        me = ob.data
+
+        lba_palette = read_lba_palette(HQRReader(filepath)[entry])
+        for i, lba_color in enumerate(lba_palette):
+            mat = bpy.data.materials.new('Color {}'.format(i))
+            mat.diffuse_color = (lba_color[0] / 255., lba_color[1] / 255., lba_color[2] / 255., 1.)
+            me.materials.append(mat)
+
+        return {'FINISHED'}
+
+    def execute(self, context):
+        LBAPaletteImporter.load(context, self.filepath, self.entry)
+        return {'FINISHED'}
+
+    def invoke(self, context, event):
+        WindowManager = context.window_manager
+        WindowManager.fileselect_add(self)
+        return {"RUNNING_MODAL"}
+
 class LBABodyImporter(bpy.types.Operator, bpy_extras.io_utils.ImportHelper):
     """Import a Little Big Adventure (LBA) body"""
 
@@ -326,8 +368,15 @@ class LBABodyImporter(bpy.types.Operator, bpy_extras.io_utils.ImportHelper):
         default=0
     )
 
-    def execute(self, context):
-        lba_model = read_lba_model(HQRReader(self.filepath)[self.entry])
+    pallet_entry : bpy.props.IntProperty(
+        name='Pallet number',
+        description="Pallet number",
+        subtype='UNSIGNED',
+        default=0
+    )
+
+    def load(context, filepath, entry):
+        lba_model = read_lba_model(HQRReader(filepath)[entry])
 
         #
         # Create armature
@@ -436,6 +485,12 @@ class LBABodyImporter(bpy.types.Operator, bpy_extras.io_utils.ImportHelper):
         ob.select_set(True)
         bpy.ops.object.shade_smooth()
 
+    def execute(self, context):
+        LBABodyImporter.load(context, self.filepath, self.entry)
+
+        if 'BODY.HQR' in self.filepath:           
+            LBAPaletteImporter.load(context, self.filepath.replace('BODY.HQR','RESS.HQR'), self.pallet_entry) 
+    
         #bpy.ops.view3d.viewnumpad(type='TOP')
         #bpy.ops.view3d.view_persportho()
         return {'FINISHED'}
@@ -445,43 +500,6 @@ class LBABodyImporter(bpy.types.Operator, bpy_extras.io_utils.ImportHelper):
         WindowManager.fileselect_add(self)
         return {"RUNNING_MODAL"}
 
-class LBAPaletteImporter(bpy.types.Operator, bpy_extras.io_utils.ImportHelper):
-    """Import a Little Big Adventure (LBA) palette"""
-
-    bl_idname = 'object.lbapalette'
-    bl_label = 'Import LBA palette'
-    bl_options = {'REGISTER', 'UNDO'}
-
-    filename_ext = '.hqr'
-    filter_glob : bpy.props.StringProperty(
-        default='*.hqr;*.HQR',
-        options={'HIDDEN'},
-    )
-
-    entry : bpy.props.IntProperty(
-        name='Entry number',
-        description="Entry number",
-        subtype='UNSIGNED',
-        default=0
-    )
-
-    def execute(self, context):
-        scn = context.scene
-        ob = bpy.context.active_object
-        me = ob.data
-
-        lba_palette = read_lba_palette(HQRReader(self.filepath)[self.entry])
-        for i, lba_color in enumerate(lba_palette):
-            mat = bpy.data.materials.new('Color {}'.format(i))
-            mat.diffuse_color = (lba_color[1] / 255., lba_color[0] / 255., lba_color[2] / 255., 1.)
-            me.materials.append(mat)
-
-        return {'FINISHED'}
-
-    def invoke(self, context, event):
-        WindowManager = context.window_manager
-        WindowManager.fileselect_add(self)
-        return {"RUNNING_MODAL"}
 
 class LBAAnimationImporter(bpy.types.Operator, bpy_extras.io_utils.ImportHelper):
     """Import a Little Big Adventure (LBA) animation"""
