@@ -21,9 +21,12 @@
 bl_info = {
     'name': 'LBA model importer',
     'author': 'Vegard Nossum <vegard.nossum@gmail.com>',
-    'version': (0, 0, 1),
-    'location': 'File > Import-Export',
+    'version': (0, 0, 2),
+    'blender': (2, 80, 0),
+    'api': 36079,
+    'location': 'File > Import-Export',    
     'description': 'Import Little Big Adventure 3D models and animations',
+    "warning": "",
     'category': 'Import-Export',
 }
 
@@ -49,7 +52,7 @@ class HQRReader(object):
                 return struct.unpack('<H', f.read(2))[0]
             def u32():
                 return struct.unpack('<I', f.read(4))[0]
-
+            print(index)
             f.seek(4 * index)
             offset = u32()
             f.seek(offset)
@@ -308,16 +311,19 @@ class LBABodyImporter(bpy.types.Operator, bpy_extras.io_utils.ImportHelper):
 
     bl_idname = 'object.lbabody'
     bl_label = 'Import LBA body'
+    bl_options = {'REGISTER', 'UNDO'}
 
     filename_ext = '.hqr'
-    filter_glob = bpy.props.StringProperty(
+    filter_glob : bpy.props.StringProperty(
         default='*.hqr;*.HQR',
         options={'HIDDEN'},
     )
 
-    entry = bpy.props.IntProperty(
+    entry : bpy.props.IntProperty(
         name='Entry number',
+        description="Entry number",
         subtype='UNSIGNED',
+        default=0
     )
 
     def execute(self, context):
@@ -434,21 +440,29 @@ class LBABodyImporter(bpy.types.Operator, bpy_extras.io_utils.ImportHelper):
         #bpy.ops.view3d.view_persportho()
         return {'FINISHED'}
 
+    def invoke(self, context, event):
+        WindowManager = context.window_manager
+        WindowManager.fileselect_add(self)
+        return {"RUNNING_MODAL"}
+
 class LBAPaletteImporter(bpy.types.Operator, bpy_extras.io_utils.ImportHelper):
     """Import a Little Big Adventure (LBA) palette"""
 
     bl_idname = 'object.lbapalette'
     bl_label = 'Import LBA palette'
+    bl_options = {'REGISTER', 'UNDO'}
 
     filename_ext = '.hqr'
-    filter_glob = bpy.props.StringProperty(
+    filter_glob : bpy.props.StringProperty(
         default='*.hqr;*.HQR',
         options={'HIDDEN'},
     )
 
-    entry = bpy.props.IntProperty(
+    entry : bpy.props.IntProperty(
         name='Entry number',
+        description="Entry number",
         subtype='UNSIGNED',
+        default=0
     )
 
     def execute(self, context):
@@ -459,10 +473,15 @@ class LBAPaletteImporter(bpy.types.Operator, bpy_extras.io_utils.ImportHelper):
         lba_palette = read_lba_palette(HQRReader(self.filepath)[self.entry])
         for i, lba_color in enumerate(lba_palette):
             mat = bpy.data.materials.new('Color {}'.format(i))
-            mat.diffuse_color = (lba_color[0] / 255., lba_color[1] / 255., lba_color[2] / 255., 1.)
+            mat.diffuse_color = (lba_color[1] / 255., lba_color[0] / 255., lba_color[2] / 255., 1.)
             me.materials.append(mat)
 
         return {'FINISHED'}
+
+    def invoke(self, context, event):
+        WindowManager = context.window_manager
+        WindowManager.fileselect_add(self)
+        return {"RUNNING_MODAL"}
 
 class LBAAnimationImporter(bpy.types.Operator, bpy_extras.io_utils.ImportHelper):
     """Import a Little Big Adventure (LBA) animation"""
@@ -471,14 +490,16 @@ class LBAAnimationImporter(bpy.types.Operator, bpy_extras.io_utils.ImportHelper)
     bl_label = 'Import LBA animation'
 
     filename_ext = '.hqr'
-    filter_glob = bpy.props.StringProperty(
+    filter_glob : bpy.props.StringProperty(
         default='*.hqr;*.HQR',
         options={'HIDDEN'},
     )
 
-    entry = bpy.props.IntProperty(
+    entry :  bpy.props.IntProperty(
         name='Entry number',
+        description="Entry number",
         subtype='UNSIGNED',
+        default=0
     )
 
     def execute(self, context):
@@ -539,6 +560,11 @@ class LBAAnimationImporter(bpy.types.Operator, bpy_extras.io_utils.ImportHelper)
         bpy.ops.pose.paths_calculate()
 
         return {'FINISHED'}
+    
+    def invoke(self, context, event):
+        WindowManager = context.window_manager
+        WindowManager.fileselect_add(self)
+        return {"RUNNING_MODAL"}
 
 def menu_func(self, context):
     self.layout.operator(LBABodyImporter.bl_idname, text='LBA Body (.HQR)')
